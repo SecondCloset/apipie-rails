@@ -476,7 +476,10 @@ module Apipie
       end
 
       if swagger_def[:type] == "array"
-        swagger_def[:items] = {type: "string"}
+        swagger_def[:items] = {
+          type: "string",
+          enum: param_desc.options.fetch(:in, [])
+        }
       end
 
       if swagger_def[:type] == "enum"
