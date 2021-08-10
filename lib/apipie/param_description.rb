@@ -88,7 +88,7 @@ module Apipie
           rest_of_options = validator
           validator = validator[:array_of]
           options.merge!(rest_of_options.select{|k,v| k != :array_of })
-          raise "an ':array_of =>' validator is allowed exclusively on response-only fields" unless @response_only
+          # raise "an ':array_of =>' validator is allowed exclusively on response-only fields" unless @response_only
         end
         @validator = Validator::BaseValidator.find(self, validator, @options, block)
         raise "Validator for #{validator} not found." unless @validator
