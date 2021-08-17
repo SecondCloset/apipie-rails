@@ -48,15 +48,13 @@ module Apipie
 
   # get application description for given or default version
   def self.app_info(version = nil, lang = nil)
-    info = if app_info_version_valid? version
+    if app_info_version_valid? version
       translate(self.configuration.app_info[version], lang)
     elsif app_info_version_valid? Apipie.configuration.default_version
       translate(self.configuration.app_info[Apipie.configuration.default_version], lang)
     else
       "Another API description"
     end
-
-    Apipie.markup_to_html info
   end
 
   def self.api_base_url(version = nil)
