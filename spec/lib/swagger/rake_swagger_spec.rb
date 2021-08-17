@@ -76,7 +76,7 @@ describe 'rake tasks' do
       it "generates static swagger files for the default version of apipie docs" do
         # print apidoc_swagger_json
 
-        expect(apidoc_swagger["info"]["title"]).to eq("Test app (params in:body)")
+        expect(apidoc_swagger["info"]["title"]).to eq("Test app")
         expect(apidoc_swagger["info"]["version"]).to eq("#{Apipie.configuration.default_version}")
       end
 
@@ -106,7 +106,7 @@ describe 'rake tasks' do
       it "generates static swagger files for the default version of apipie docs" do
         # print apidoc_swagger_json
 
-        expect(apidoc_swagger["info"]["title"]).to eq("Test app (params in:formData)")
+        expect(apidoc_swagger["info"]["title"]).to eq("Test app")
         expect(apidoc_swagger["info"]["version"]).to eq("#{Apipie.configuration.default_version}")
 
       end
