@@ -117,7 +117,14 @@ module Apipie
       return true if @allow_nil && value.nil?
       return true if @allow_blank && value.blank?
       value = normalized_value(value)
-      if (!@allow_nil && value.nil?) || !@validator.valid?(value)
+      if is_array? && value.is_a?(Array) 
+        # if param is array_of, validate each element against specified validator
+        errors = value.map do |elem|
+          next if @validator.valid?(elem)
+          @validator.error
+        end.compact
+        raise errors.join(', ') if errors.present?
+      elsif (!@allow_nil && value.nil?) || !@validator.valid?(value)
         error = @validator.error
         error = ParamError.new(error) unless error.is_a? StandardError
         raise error
