@@ -348,8 +348,10 @@ module Apipie
 
       def property(param_name, validator, desc_or_options = nil, options = {}, &block) #:doc:
         return unless Apipie.active_dsl?
-        options[:only_in] ||= :response
-        options[:required] = true if options[:required].nil?
+        if validator.is_a?(Hash)
+          options[:desc] = validator[:desc]
+          options[:required] = validator[:required]
+        end
         param(param_name, validator, desc_or_options, options, &block)
       end
 
