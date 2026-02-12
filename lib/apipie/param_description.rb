@@ -90,7 +90,7 @@ module Apipie
         if (validator != Hash) && (validator.is_a? Hash) && validator[:array_of]
           @is_array = true
           validator = validator[:array_of]
-          raise "an ':array_of =>' validator is allowed exclusively on response-only fields" unless @response_only
+          # raise "an ':array_of =>' validator is allowed exclusively on response-only fields" unless @response_only
         end
         @validator = Validator::BaseValidator.find(self, validator, @options, block)
         raise "Validator for #{validator} not found." unless @validator
