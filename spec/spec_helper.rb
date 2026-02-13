@@ -45,9 +45,9 @@ RSpec::Matchers.define :have_field do |name, type, opts = {}|
     return fail("expected param '#{name}' to have enum '#{opts[:enum]}' (got #{prop[:enum]})") if opts[:enum] && prop[:enum] != opts[:enum]
     return fail("expected param '#{name}' to have items '#{opts[:items]}' (got #{prop[:items]})") if opts[:items] && prop[:items] != opts[:items]
     if !opts.include?(:required) || opts[:required] == true
-      return fail("expected param '#{name}' to be required") unless actual[:required].include?(name)
+      return fail("expected param '#{name}' to be required") unless actual[:required]&.include?(name)
     else
-      return fail("expected param '#{name}' to be optional") if actual[:required].include?(name)
+      return fail("expected param '#{name}' to be optional") if actual[:required]&.include?(name)
     end
     true
   end

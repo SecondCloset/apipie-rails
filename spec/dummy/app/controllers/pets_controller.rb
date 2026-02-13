@@ -13,7 +13,7 @@ class PetsController < ApplicationController
     param :common_param, Integer, :desc => "A param that can optionally be passed to all Pet methods", :required => false
 
     returns :code => 404 do
-      property :error_message, String, "description of the error"
+      property :error_message, String, "description of the error", :required => true
     end
 
   end
@@ -24,7 +24,7 @@ class PetsController < ApplicationController
   api :GET, "/pets/:id/as_properties", "Get a pet record"
   returns :code => 200 do
     property :pet_name, String, :desc => "Name of pet", :required => false, :example => 'mypet'
-    property :animal_type, %w[dog cat iguana kangaroo], :desc => "Type of pet"   # required by default, because this is a 'property'
+    property :animal_type, %w[dog cat iguana kangaroo], :desc => "Type of pet", :required => true
   end
   returns :code => 404 do
     property :another_error_message, String, :desc => "Overriding the response description from the Pets resource"
@@ -40,7 +40,7 @@ class PetsController < ApplicationController
   #-----------------------------------------------------------
   def_param_group :pet do
     property :pet_name, String, :desc => "Name of pet", :required => false
-    property :animal_type, %w[dog cat iguana kangaroo], :desc => "Type of pet"   # required by default, because this is a 'property'
+    property :animal_type, %w[dog cat iguana kangaroo], :desc => "Type of pet", :required => true
   end
 
   api :GET, "/pets/:id/as_param_group_of_properties", "Get a pet record"
@@ -70,7 +70,7 @@ class PetsController < ApplicationController
     param :pet_id, Integer, :desc => "id of pet", :required => true
     param :pet_name, String, :desc => "Name of pet", :required => false, :only_in => :response
     param :partial_match_allowed, [true, false], :desc => "Partial match allowed?", :required => false, :only_in => :request
-    property :animal_type, %w[dog cat iguana kangaroo], :desc => "Type of pet"   # this is implicitly :only_in => :response
+    property :animal_type, %w[dog cat iguana kangaroo], :desc => "Type of pet", :required => true   # this is implicitly :only_in => :response
   end
 
   api :GET, "/pets/pet_by_id", "Get a pet record with the pet id in the body of the request"
@@ -89,7 +89,7 @@ class PetsController < ApplicationController
     param :owner_name, String
   end
   def_param_group :user_response do # a param group that can be used to describe outputs only
-    property :vote, [true,false]
+    property :vote, [true,false], :required => true
   end
 
   api :GET, "/pets/by_owner_name/did_vote", "did any of the pets owned by the given user vote?"
@@ -109,16 +109,16 @@ class PetsController < ApplicationController
   # some of which have a complex data structure
   #-----------------------------------------------------------
   def_param_group :pet_measurements do
-    property :pet_measurements, Hash do
-      property :weight, Integer, :desc => "Weight in pounds"
-      property :height, Integer, :desc => "Height in inches"
+    property :pet_measurements, Hash, :required => true do
+      property :weight, Integer, :desc => "Weight in pounds", :required => true
+      property :height, Integer, :desc => "Height in inches", :required => true
       property :num_legs, Integer, :desc => "Number of legs", :required => false
     end
   end
 
   def_param_group :pet_history do
-    property :did_visit_vet, [true,false], :desc => "Did the pet visit the veterinarian"
-    property :avg_meals_per_day, Float, :desc => "Average number of meals per day"
+    property :did_visit_vet, [true,false], :desc => "Did the pet visit the veterinarian", :required => true
+    property :avg_meals_per_day, Float, :desc => "Average number of meals per day", :required => true
   end
 
   api :GET, "/pets/:id/extra_info", "Get extra information about a pet"
@@ -132,21 +132,21 @@ class PetsController < ApplicationController
   returns :code => 203 do
     param_group :pet
     param_group :pet_measurements
-    property 'pet_history', Hash do  # the pet_history param_group does not contain a wrapping object,
+    property 'pet_history', Hash, :required => true do  # the pet_history param_group does not contain a wrapping object,
                                      # so create one manually
       param_group :pet_history
     end
-    property 'additional_histories', :array_of => Hash do
+    property 'additional_histories', :array_of => Hash, :required => true do
       param_group :pet_history
     end
   end
   returns :code => 204 do
-    property :int_array, :array_of => Integer
-    property :enum_array, :array_of => %w[v1 v2 v3]
+    property :int_array, :array_of => Integer, :required => true
+    property :enum_array, :array_of => %w[v1 v2 v3], :required => true
   end
   returns :code => :unprocessable_entity, :desc => "Fleas were discovered on the pet" do
     param_group :pet
-    property :num_fleas, Integer, :desc => "Number of fleas on this pet"
+    property :num_fleas, Integer, :desc => "Number of fleas on this pet", :required => true
   end
   def show_extra_info
     render :plain => "please disinfect your pet"
@@ -256,12 +256,12 @@ class PetsController < ApplicationController
   end
 
   #-----------------------------------------------------------
-  # A method which has a response with a missing field
+  # A method which has a response with a missing required field
   #-----------------------------------------------------------
   api!
   returns :code => 200 do
-    property :a_number, Integer
-    property :another_number, Integer
+    property :a_number, Integer, :required => true
+    property :another_number, Integer, :required => true
   end
   def return_and_validate_missing_field
     result =  {

@@ -30,7 +30,7 @@ RSpec.describe PetsController do
     expect(response).not_to match_declared_responses
   end
 
-  it "raises error when a response has a missing field" do
+  it "raises error when a response has a missing required field" do
     response = get :return_and_validate_missing_field, format: :json
     expect(response).not_to match_declared_responses
   end
