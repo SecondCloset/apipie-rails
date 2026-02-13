@@ -1,6 +1,6 @@
 module Apipie
 
-  def self.prop(name, expected_type, options={}, sub_properties=[])
+  def self.prop(name, expected_type, options = {}, sub_properties = [])
     Apipie::ResponseDescriptionAdapter::PropDesc.new(name, expected_type, options, sub_properties)
   end
 
@@ -11,7 +11,7 @@ module Apipie
   class ResponseDescriptionAdapter
     class Modifier
       def apply(adapter)
-        raise "Modifer subclass must implement 'apply' method"
+        raise "Modifier subclass must implement 'apply' method"
       end
     end
 
@@ -57,10 +57,10 @@ module Apipie
         attr_reader :expected_type
 
         def [](key)
-          return self.send(key) if self.respond_to?(key.to_s)
+          self.send(key) if self.respond_to?(key.to_s)
         end
 
-        def initialize(expected_type, enum_values=nil, sub_properties=nil)
+        def initialize(expected_type, enum_values = nil, sub_properties = nil)
           @expected_type = expected_type
           @enum_values = enum_values
           @is_enum = !!enum_values
@@ -84,7 +84,7 @@ module Apipie
       #======================================================================
 
 
-      def initialize(name, expected_type, options={}, sub_properties=[])
+      def initialize(name, expected_type, options = {}, sub_properties = [])
         @name = name
         @required = true
         @required = false if options[:required] == false
@@ -102,14 +102,15 @@ module Apipie
       end
 
       def [](key)
-        return self.send(key) if self.respond_to?(key.to_s)
+        self.send(key) if self.respond_to?(key.to_s)
       end
 
       def add_sub_property(prop_desc)
         raise "Only properties with expected_type 'object' can have sub-properties" unless @expected_type == 'object'
-        if prop_desc.is_a? PropDesc
+        case prop_desc
+        when PropDesc
           @sub_properties << prop_desc
-        elsif prop_desc.is_a? Modifier
+        when Modifier
           prop_desc.apply(self)
         else
           raise "Unrecognized prop_desc type (#{prop_desc.class})"
@@ -130,7 +131,7 @@ module Apipie
       attr_reader :name, :required, :expected_type, :options, :description
       attr_accessor :additional_properties
 
-      alias_method :desc, :description
+      alias desc description
 
       def is_array?
         @is_array
@@ -170,9 +171,10 @@ module Apipie
     end
 
     def add(prop_desc)
-      if prop_desc.is_a? PropDesc
+      case prop_desc
+      when PropDesc
         @property_descs << prop_desc
-      elsif prop_desc.is_a? Modifier
+      when Modifier
         prop_desc.apply(self)
       else
         raise "Unrecognized prop_desc type (#{prop_desc.class})"

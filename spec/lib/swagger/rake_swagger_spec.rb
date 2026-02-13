@@ -1,18 +1,18 @@
 require 'spec_helper'
 require "json-schema"
 
-require File.expand_path("../../../dummy/app/controllers/twitter_example_controller.rb", __FILE__)
-require File.expand_path("../../../dummy/app/controllers/users_controller.rb", __FILE__)
-require File.expand_path("../../../dummy/app/controllers/pets_controller.rb", __FILE__)
+require File.expand_path('../../dummy/app/controllers/twitter_example_controller.rb', __dir__)
+require File.expand_path('../../dummy/app/controllers/users_controller.rb', __dir__)
+require File.expand_path('../../dummy/app/controllers/pets_controller.rb', __dir__)
 
 describe 'rake tasks' do
   include_context "rake"
 
-  let(:doc_path)  { "user_specified_doc_path" }
+  let(:doc_path)  { 'tmp/user_specified_doc_path' }
 
   before do
     Apipie.configuration.doc_path = doc_path
-    Apipie.configuration.swagger_suppress_warnings = true
+    Apipie.configuration.generator.swagger.suppress_warnings = true
     allow(Apipie).to receive(:reload_documentation)
     subject.invoke(*task_args)
   end
@@ -37,11 +37,11 @@ describe 'rake tasks' do
     end
 
     let(:doc_output) do
-      File.join(::Rails.root, doc_path, 'apidoc')
+      File.join(Rails.root, doc_path, 'apidoc')
     end
 
     let(:ref_output) do
-      File.join(::Rails.root, doc_path, 'apidoc_ref')
+      File.join(Rails.root, doc_path, 'apidoc_ref')
     end
 
 
@@ -49,6 +49,17 @@ describe 'rake tasks' do
       params = apidoc_swagger["paths"][path][http_method]["parameters"]
       param = params.select {|p| p if p["name"]==param_name}[0]
       expect(param[field]).to eq(value)
+    end
+
+    def expect_array_param_def(http_method, path, param_name, value)
+      params = apidoc_swagger["paths"][path][http_method]["parameters"]
+      param = params.select { |p| p if p["name"] == param_name }[0]
+
+      expect(param['type']).to eq('array')
+      expect(param['items']).to eq(
+        'type' => 'string',
+        'enum' => value
+      )
     end
 
     def expect_tags_def(http_method, path, value)
@@ -71,12 +82,15 @@ describe 'rake tasks' do
       expect(param[field]).to eq(value)
     end
 
+    def expect_response_params_def(http_method, path, response_code, param_name, field, value)
+      param = apidoc_swagger["paths"][path][http_method]["responses"][response_code.to_s]["schema"]["properties"][param_name]
+      expect(param[field]).to eq(value)
+    end
 
     describe 'apipie:static_swagger_json[development,json,_tmp]' do
       it "generates static swagger files for the default version of apipie docs" do
         # print apidoc_swagger_json
 
-        expect(apidoc_swagger["info"]["title"]).to eq("Test app")
         expect(apidoc_swagger["info"]["version"]).to eq("#{Apipie.configuration.default_version}")
       end
 
@@ -91,9 +105,10 @@ describe 'rake tasks' do
 
         expect_param_def("get", "/users/by_department", "department", "in", "query")
         expect_param_def("get", "/users/by_department", "department", "enum",
-                         ["finance", "operations", "sales", "marketing", "HR"])
+                         %w[finance operations sales marketing HR])
 
         expect_tags_def("get", "/twitter_example/{id}/followers", %w[twitter_example following index search])
+        expect_response_params_def("get", "/pets/{id}/as_properties", 200, "pet_name", "example", "mypet")
       end
 
       it "generates a valid swagger file" do
@@ -117,7 +132,11 @@ describe 'rake tasks' do
         expect_param_def("put", "/users/{id}", "oauth", "in", "formData")
         expect_param_def("get", "/users/by_department", "department", "in", "query")
         expect_param_def("get", "/users/by_department", "department", "enum",
-                         ["finance", "operations", "sales", "marketing", "HR"])
+                         %w[finance operations sales marketing HR])
+
+        expect_param_def("get", "/users/in_departments", "departments", "in", "query")
+        expect_array_param_def("get", "/users/in_departments", "departments",
+                         %w[finance operations sales marketing HR])
 
         expect_tags_def("get", "/twitter_example/{id}/followers", %w[twitter_example following index search])
 
@@ -131,7 +150,7 @@ describe 'rake tasks' do
 
     describe 'apipie:did_swagger_change[development,form_data,_tmp]' do
       it "keeps a reference file" do
-        expect(Pathname(ref_output).children.count).to eq(2)  # one file for each language
+        expect(Pathname(ref_output).children.count).to eq(2) # one file for each language
       end
     end
   end

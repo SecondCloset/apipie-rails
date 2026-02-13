@@ -1,7 +1,7 @@
 module Apipie
   module Extractor
     class Recorder
-      MULTIPART_BOUNDARY = 'APIPIE_RECORDER_EXAMPLE_BOUNDARY'
+      MULTIPART_BOUNDARY = 'APIPIE_RECORDER_EXAMPLE_BOUNDARY'.freeze
 
       def initialize
         @ignored_params = [:controller, :action]
@@ -9,22 +9,22 @@ module Apipie
 
       def analyse_env(env)
         @verb = env["REQUEST_METHOD"].to_sym
-        @path = env["PATH_INFO"].sub(/^\/*/,"/")
+        @path = env["PATH_INFO"].sub(%r{^/*},"/")
         @query = env["QUERY_STRING"] unless env["QUERY_STRING"].blank?
         @params = Rack::Utils.parse_nested_query(@query)
         @params.merge!(env["action_dispatch.request.request_parameters"] || {})
         rack_input = env["rack.input"]
-        if data = parse_data(rack_input.read)
+        if data = parse_data(rack_input&.read)
           @request_data = data
         elsif form_hash = env["rack.request.form_hash"]
           @request_data = reformat_multipart_data(form_hash)
         end
-        rack_input.rewind
+        rack_input&.rewind
       end
 
       def analyse_controller(controller)
         @controller = controller.class
-        @action = controller.params[:action]
+        @action = Apipie.configuration.api_action_matcher.call(controller)
       end
 
       def analyse_response(response)
@@ -44,11 +44,13 @@ module Apipie
         @path = request.path
         @params = request.request_parameters
         if [:POST, :PUT, :PATCH, :DELETE].include?(@verb)
-          @request_data = @params
+          @request_data = request.content_type == "multipart/form-data" ? reformat_multipart_data(@params) : @params
         else
           @query = request.query_string
         end
-        @response_data = parse_data(response.body)
+        if response.media_type != 'application/pdf'
+          @response_data = parse_data(response.body)
+        end
         @code = response.code
       end
 
@@ -64,8 +66,14 @@ module Apipie
         lines = ["Content-Type: multipart/form-data; boundary=#{MULTIPART_BOUNDARY}",'']
         boundary = "--#{MULTIPART_BOUNDARY}"
         form.each do |key, attrs|
-          if attrs.is_a?(String)
+          if attrs.is_a?(String) # rubocop:disable Style/CaseLikeIf
             lines << boundary << content_disposition(key) << "Content-Length: #{attrs.size}" << '' << attrs
+          elsif attrs.is_a?(Rack::Test::UploadedFile) || attrs.is_a?(ActionDispatch::Http::UploadedFile)
+            reformat_uploaded_file(boundary, attrs, key, lines)
+          elsif attrs.is_a?(Array)
+            reformat_array(boundary, attrs, key, lines)
+          elsif attrs.is_a?(TrueClass) || attrs.is_a?(FalseClass)
+            reformat_boolean(boundary, attrs, key, lines)
           else
             reformat_hash(boundary, attrs, lines)
           end
@@ -82,8 +90,26 @@ module Apipie
           lines << '' << %{... contents of "#{attrs[:name]}" ...}
         else
           # Look for subelements that contain a part.
-          attrs.each { |k,v| v.is_a?(Hash) and reformat_hash(boundary, v, lines) }
+          attrs.each_value { |v| v.is_a?(Hash) and reformat_hash(boundary, v, lines) }
         end
+      end
+
+      def reformat_boolean(boundary, attrs, key, lines)
+        lines << boundary << content_disposition(key)
+        lines << '' << attrs.to_s
+      end
+
+      def reformat_array(boundary, attrs, key, lines)
+        attrs.each do |item|
+          lines << boundary << content_disposition("#{key}[]")
+          lines << '' << item
+        end
+      end
+
+      def reformat_uploaded_file(boundary, file, key, lines)
+        lines << boundary << %{#{content_disposition(key)}; filename="#{file.original_filename}"}
+        lines << "Content-Length: #{file.size}" << "Content-Type: #{file.content_type}" << "Content-Transfer-Encoding: binary"
+        lines << '' << %{... contents of "#{key}" ...}
       end
 
       def content_disposition(name)
@@ -150,8 +176,8 @@ module Apipie
       end
 
       module FunctionalTestRecording
-        def process(*args) # action, parameters = nil, session = nil, flash = nil, http_method = 'GET')
-          ret = super(*args)
+        def process(*) # action, parameters = nil, session = nil, flash = nil, http_method = 'GET')
+          ret = super
           if Apipie.configuration.record
             Apipie::Extractor.call_recorder.analyze_functional_test(self)
             Apipie::Extractor.call_finished
@@ -160,6 +186,7 @@ module Apipie
         ensure
           Apipie::Extractor.clean_call_recorder
         end
+        ruby2_keywords :process if respond_to?(:ruby2_keywords, true)
       end
     end
   end
