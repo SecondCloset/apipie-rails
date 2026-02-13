@@ -30,10 +30,8 @@ class Apipie::Generator::Swagger::Schema
 
     if Apipie.configuration.generator.swagger.content_type_input == :json
       @swagger[:consumes] = ['application/json']
-      @swagger[:info][:title] += ' (params in:body)'
     else
       @swagger[:consumes] = ['application/x-www-form-urlencoded', 'multipart/form-data']
-      @swagger[:info][:title] += ' (params in:formData)'
     end
 
     if @clear_warnings
