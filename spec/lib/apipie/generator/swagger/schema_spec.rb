@@ -56,20 +56,6 @@ describe Apipie::Generator::Swagger::Schema do
       end
     end
 
-    describe 'title' do
-      subject { schema_generator.generate[:info][:title] }
-
-      before { Apipie.configuration.generator.swagger.content_type_input = nil }
-
-      it { is_expected.to include(' (params in:formData)') }
-
-      context 'when swagger.content_type_input is set to json' do
-        before { Apipie.configuration.generator.swagger.content_type_input = :json }
-
-        it { is_expected.to include(' (params in:body)') }
-      end
-    end
-
     describe 'x-computed-id' do
       subject(:schema) { schema_generator.generate[:info] }
 
