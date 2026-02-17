@@ -120,7 +120,20 @@ module Apipie
       return true if allow_nil && value.nil?
       return true if allow_blank && value.blank?
       value = normalized_value(value)
-      if (!allow_nil && value.nil?) || (blank_forbidden? && value.blank?) || !validator.valid?(value)
+
+      if @is_array
+        # When array_of: is used, validate that value is an array and each element is valid
+        if !value.is_a?(Array)
+          raise ParamError.new("Must be an array")
+        end
+        value.each_with_index do |item, index|
+          if !validator.valid?(item)
+            error = validator.error
+            error = ParamError.new("#{error} (at index #{index})") unless error.is_a? StandardError
+            raise error
+          end
+        end
+      elsif (!allow_nil && value.nil?) || (blank_forbidden? && value.blank?) || !validator.valid?(value)
         error = validator.error
         error = ParamError.new(error) unless error.is_a? StandardError
         raise error
